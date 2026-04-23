@@ -61,7 +61,7 @@ func (cs *ContainerSelector) Run() ([]struct{ ID, Name string }, error) {
 		status := fmt.Sprintf("[%s] %s", state, c.Status)
 
 		// Add item without a select callback - we'll handle selection via input capture
-		cs.list.AddItem(name, status, ' ', nil)
+		cs.list.AddItem(name, status, 0, nil)
 	}
 
 	cs.refreshDisplay()
@@ -194,9 +194,9 @@ func (cs *ContainerSelector) updateItemDisplay(idx int) {
 
 	// Add checkmark if selected
 	if cs.selected[cs.containers[idx].ID] {
-		name = "[green]✓[white] " + name
+		name = "[green](X)[white] " + name
 	} else {
-		name = "  " + name
+		name = "( ) " + name
 	}
 
 	state := cs.containers[idx].State
