@@ -61,6 +61,13 @@ func (ui *UI) SetLogsDir(dir string) {
 	ui.logsDir = dir
 }
 
+// SetMaxLogLines configures the number of buffered log lines retained per container.
+func (ui *UI) SetMaxLogLines(max int) {
+	if max > 0 {
+		ui.maxLogLines = max
+	}
+}
+
 // New creates a new UI instance
 func New(statusTracker *status.Tracker, stateManagers map[string]*state.StateManager, filterManagers map[string]*filter.Manager, containers []config.Container) *UI {
 	app := tview.NewApplication()
@@ -198,8 +205,11 @@ func (ui *UI) setupUI() {
 				ui.switchToTab(9)
 				return nil
 			}
-		case 'e', 'E':
+		case 'e':
 			ui.exportCurrentLog()
+			return nil
+		case 'E':
+			ui.exportAllLogs()
 			return nil
 		case 'h', 'H':
 			ui.toggleShortcutsBar()
@@ -609,6 +619,45 @@ func (ui *UI) exportCurrentLog() {
 	for _, line := range lines {
 		clean := tvColorTagRe.ReplaceAllString(line, "")
 		fmt.Fprintln(f, clean)
+	}
+}
+
+// exportAllLogs writes the buffered logs of all tracked containers
+// to files named <container-name>.<datetime>.log in the working directory.
+func (ui *UI) exportAllLogs() {
+	for _, container := range ui.containers {
+		containerName := container.Name
+
+		logView, exists := ui.logViews[containerName]
+		if !exists {
+			continue
+		}
+
+		logView.mu.Lock()
+		lines := make([]string, len(logView.buffer))
+		copy(lines, logView.buffer)
+		logView.mu.Unlock()
+
+		datetime := time.Now().Format("2006-01-02T15-04-05")
+		basename := fmt.Sprintf("%s.%s.log", containerName, datetime)
+
+		filename := basename
+		if ui.logsDir != "" {
+			if err := os.MkdirAll(ui.logsDir, 0755); err == nil {
+				filename = fmt.Sprintf("%s/%s", ui.logsDir, basename)
+			}
+		}
+
+		f, err := os.Create(filename)
+		if err != nil {
+			continue
+		}
+
+		for _, line := range lines {
+			clean := tvColorTagRe.ReplaceAllString(line, "")
+			fmt.Fprintln(f, clean)
+		}
+		f.Close()
 	}
 }
 

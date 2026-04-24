@@ -185,6 +185,9 @@ filters: []
 
 ### Configuration Options
 
+#### Top-level
+- `log_buffer_lines` *(optional, default 500)*: Maximum buffered log lines retained per tracked container before older lines are discarded
+
 #### Containers
 - `name`: A friendly name for the container
 - `container_id`: The Docker container name or ID
@@ -297,12 +300,12 @@ If no config file is found, or if you pass `-no-config`, the dashboard shows an 
 The dashboard will monitor your selected containers with:
 - **Raw log display**: All logs shown without filtering or state tracking (since no config was provided)
 - **Tab switching**: Use 1–9/0 keys to switch between selected containers
-- **Log export**: Press `e` to save buffered logs to files for analysis
+- **Log export**: Press `e` to export current container's logs, or `Shift+e` to export all containers
 - **Container restart recovery**: Automatically reconnects if containers are restarted
 
 #### Next Steps
 
-Export logs using the `e` key, then use the config-builder tool to:
+Export logs using `e` (current) or `Shift+e` (all containers), then use the config-builder tool to:
 - Analyze the logs
 - Define custom filters and state machines
 - Generate a full configuration file for future runs
@@ -325,14 +328,15 @@ See [Config Builder](#config-builder) section for details.
 | **1–9, 0** | Switch to container tab 1–10 |
 | **↑ / ↓** | Scroll up/down through logs |
 | **Page Up / Page Down** | Scroll logs one page at a time |
-| **e** or **E** | Export current container's logs to a file |
+| **e** | Export current container's logs to a file |
+| **E** (Shift+e) | Export logs of all tracked containers to files |
 | **h** | Toggle keyboard shortcuts legend |
 | **c** or **C** | Clear current container's buffered logs |
 | **Ctrl+C** | Exit the application |
 
 ### Log Export
 
-Press **`e`** while viewing any container tab to save its buffered logs to disk.
+Press **`e`** to export the current container's buffered logs to disk. Press **`Shift+e`** to export logs from all tracked containers.
 
 Files are saved to the home directory as:
 ```
