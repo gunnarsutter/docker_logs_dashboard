@@ -145,6 +145,9 @@ func (d *Dashboard) Start(ctx context.Context) error {
 
 	// Initialize UI
 	d.ui = ui.New(d.statusTracker, d.stateManagers, d.filterManagers, d.config.Containers)
+	if d.config.LogBufferLines != nil {
+		d.ui.SetMaxLogLines(*d.config.LogBufferLines)
+	}
 
 	// Set up logs directory for exported logs (~/logs/)
 	homeDir, err := os.UserHomeDir()

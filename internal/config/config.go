@@ -11,10 +11,11 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	Containers []Container `yaml:"containers"`
-	States     []State     `yaml:"states"`
-	Events     []Event     `yaml:"events"`
-	Filters    []Filter    `yaml:"filters"`
+	LogBufferLines *int        `yaml:"log_buffer_lines"`
+	Containers     []Container `yaml:"containers"`
+	States         []State     `yaml:"states"`
+	Events         []Event     `yaml:"events"`
+	Filters        []Filter    `yaml:"filters"`
 }
 
 // Container represents a Docker container to monitor
@@ -193,6 +194,10 @@ func Load(path string) (*Config, error) {
 
 // Validate checks if the configuration is valid
 func (c *Config) Validate() error {
+	if c.LogBufferLines != nil && *c.LogBufferLines <= 0 {
+		return fmt.Errorf("log_buffer_lines must be greater than 0")
+	}
+
 	if len(c.Containers) == 0 {
 		return fmt.Errorf("no containers defined")
 	}
@@ -291,10 +296,11 @@ func (c *Config) ValidateMinimal() error {
 // CreateMinimalConfig creates an empty configuration with no containers, states, or events
 func CreateMinimalConfig() *Config {
 	return &Config{
-		Containers: []Container{},
-		States:     []State{},
-		Events:     []Event{},
-		Filters:    []Filter{},
+		LogBufferLines: nil,
+		Containers:     []Container{},
+		States:         []State{},
+		Events:         []Event{},
+		Filters:        []Filter{},
 	}
 }
 

@@ -148,7 +148,7 @@ dashboard.processLogs()  [goroutine]
   │    iterates non-exclude filters; collects names of those whose patterns match
   │
   └─ ui.AddLog(entry, matchingFilters)
-       appends formatted line to ContainerLogView.buffer (max 500 lines)
+      appends formatted line to ContainerLogView.buffer (max `log_buffer_lines`, default 500)
        appends to ContainerLogView.pendingLines for next UI flush
 ```
 
