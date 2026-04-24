@@ -27,8 +27,8 @@ The repository also includes two supporting CLI tools:
 
 ```
 ┌─ System Status ────────────────────────┬─ Current State ───┬─ Active Filters ───┐
-│ ● DataCollector | Zenoh: Connected     │ State: OPERATING  │ Total: 8 filters   │
-│ ● zenoh         | RCS: Data received   │                   │ • startup-sequence │
+│ ● DataCollector | RCS: Data received   │ State: OPERATING  │ Total: 8 filters   │
+│ ● zenoh         | Zenoh: Connected     │                   │ • startup-sequence │
 │                 |                      │ Description...    │ • connection-events│
 └────────────────────────────────────────┴───────────────────┴────────────────────┘
 ┌────────────────────────────── DataCollector Logs ───────────────────────────────┐
