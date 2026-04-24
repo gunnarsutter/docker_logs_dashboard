@@ -1,6 +1,6 @@
 # Docker Logs Dashboard
 
-A powerful full-screen terminal UI application for monitoring Docker container logs with support for filtering, pattern matching, and state-based event triggering.
+A simple full-screen terminal UI application for monitoring Docker container logs with support for filtering, pattern matching, and state-based event triggering.
 
 The repository also includes two supporting CLI tools:
 - `config-builder`: API server for generating config snippets from exported logs
@@ -26,20 +26,18 @@ The repository also includes two supporting CLI tools:
 ## UI Layout
 
 ```
-┌─ System Status ──────────────────┬─ Current State ───┬─ Active Filters ───┐
+┌─ System Status ────────────────────────┬─ Current State ───┬─ Active Filters ───┐
 │ ● DataCollector | Zenoh: Connected     │ State: OPERATING  │ Total: 8 filters   │
-│ ● zenoh   | RCS: Data received   │                   │ • startup-sequence │
-│           |                      │ Description...    │ • connection-events│
-└──────────────────────────────────┴───────────────────┴────────────────────┘
-┌─ DataCollector Logs ────────────────────┬─ zenoh Logs ──────────────────────────┐
-│ 15:04:05 [connection-events]      │ 15:04:02 Initial conf...              │
-│   ... connected!                  │ 15:04:03 Using ZID: b4ebccbe...       │
-│ 15:04:10 [data-loading]           │ 15:04:04 Zenoh can be reached at:     │
-│   Added 178 parameters            │   tcp/172.18.0.2:7447                 │
-│ 15:04:12 ► STATE CHANGE:          │ 15:04:05 listening scout messages     │
-│   connecting → operational        │   on 224.0.0.224:7446                 │
-│ ...                               │ ...                                   │
-└───────────────────────────────────┴───────────────────────────────────────┘
+│ ● zenoh         | RCS: Data received   │                   │ • startup-sequence │
+│                 |                      │ Description...    │ • connection-events│
+└────────────────────────────────────────┴───────────────────┴────────────────────┘
+┌────────────────────────────── DataCollector Logs ───────────────────────────────┐
+│ 15:04:05 [connection-events]  ....connected!                                    │
+│ 15:04:10 [data-loading] Added 178 parameters                                    │
+│ 15:04:12 ► STATE CHANGE: connecting → operational                               │
+│                                                                                 │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 Each container gets its own dedicated log panel, making it easy to:
@@ -61,7 +59,7 @@ Each container gets its own dedicated log panel, making it easy to:
 
 ### Prerequisites
 
-- Go 1.21 or later
+- Go 1.24 or later
 - Docker daemon running and accessible
 - Docker API access (usually via `/var/run/docker.sock`)
 
@@ -87,6 +85,8 @@ Create a `config.yaml` file based on the provided `config.example.yaml`:
 
 ```yaml
 # Define containers to monitor
+log_buffer_lines: 1000 #default 500
+
 containers:
   - name: "web-server"
     container_id: "web-server-container"
@@ -287,11 +287,11 @@ If no config file is found, or if you pass `-no-config`, the dashboard shows an 
    - All running Docker containers
    - Container names and current state (running/paused/etc.)
    - Status information
-   - Visual checkmarks (✓) for selected containers
+   - Visual checkmarks (X) for selected containers
 
 3. **Select your containers**:
    - **Arrow Up/Down**: Navigate the list
-   - **Space**: Toggle selection (✓ marks selected containers)
+   - **Space**: Toggle selection (X marks selected containers)
    - **Enter**: Confirm selection and start the dashboard
    - **Esc**: Cancel and exit
 
@@ -309,8 +309,6 @@ Export logs using `e` (current) or `Shift+e` (all containers), then use the conf
 - Analyze the logs
 - Define custom filters and state machines
 - Generate a full configuration file for future runs
-
-See [Config Builder](#config-builder) section for details.
 
 ### Keyboard Controls
 
@@ -343,10 +341,6 @@ Files are saved to the home directory as:
 ~/logs/<container-name>.<datetime>.log
 ```
 For example: `~/logs/datacollector.2026-04-15T10-30-45.log`
-
-Color/formatting codes are stripped, producing clean plain-text files. These files can be loaded into the config-builder web UI to create pattern-based config files.
-
-The config-builder web UI automatically discovers all `.log` files in `~/logs/` in the **Logs** tab, allowing you to load exported logs without restarting the server.
 
 ### Understanding the Display
 
