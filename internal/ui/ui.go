@@ -146,10 +146,7 @@ func (ui *UI) setupUI() {
 	for i, container := range ui.containers {
 		logView := tview.NewTextView().
 			SetDynamicColors(true).
-			SetScrollable(true).
-			SetChangedFunc(func() {
-				ui.app.Draw()
-			})
+			SetScrollable(true)
 		logView.
 			SetBorder(true).
 			SetTitle(fmt.Sprintf(" %s Logs ", container.Name)).
@@ -480,14 +477,15 @@ func (ui *UI) AddLog(entry docker.LogEntry, matchingFilters []string) {
 	timestamp := time.Now().Format("15:04:05")
 
 	// Format log line (without container name since each view is for one container)
+	safeMessage := sanitizeLogMessage(entry.Message)
 	logLine := fmt.Sprintf("[gray]%s[white]%s %s",
-		timestamp, filterTags, strings.TrimRight(entry.Message, "\n"))
+		timestamp, filterTags, tview.Escape(safeMessage))
 
 	// Add to buffer
 	logView.buffer = append(logView.buffer, logLine)
 
 	// Update latest status (strip color codes for cleaner display)
-	cleanMessage := strings.TrimRight(entry.Message, "\n")
+	cleanMessage := safeMessage
 	if len(cleanMessage) > 60 {
 		cleanMessage = cleanMessage[:57] + "..."
 	}
@@ -578,6 +576,27 @@ func (ui *UI) AddStatusMessageToContainer(message string, containerName string) 
 	} else if !logView.pendingNeedsRedraw {
 		logView.pendingLines = append(logView.pendingLines, logLine)
 	}
+}
+
+var ansiRe = regexp.MustCompile(`\x1b(\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(\x07|\x1b\\)?|[@-Z\\-_])`)
+
+// sanitizeLogMessage strips ANSI escapes and control characters that would
+// corrupt the terminal when written through tview.
+func sanitizeLogMessage(s string) string {
+	s = strings.TrimRight(s, "\r\n")
+	s = ansiRe.ReplaceAllString(s, "")
+	if i := strings.LastIndex(s, "\r"); i >= 0 {
+		s = s[i+1:]
+	}
+	return strings.Map(func(r rune) rune {
+		if r == '\t' {
+			return ' '
+		}
+		if r < 0x20 || r == 0x7f || (r >= 0x80 && r < 0xa0) {
+			return -1
+		}
+		return r
+	}, s)
 }
 
 var tvColorTagRe = regexp.MustCompile(`\[[a-zA-Z#,:\- ]*\]`)
