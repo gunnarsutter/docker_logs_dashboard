@@ -250,7 +250,7 @@ func (d *Dashboard) startLogStreaming(ctx context.Context, container config.Cont
 	d.streamingMu.Lock()
 	// Check if already streaming
 	if d.streamingContainers[container.Name] {
-		d.logger.Printf("[%s/%s] Already streaming, skipping", container.Name, container.ContainerID[:12])
+		d.logger.Printf("[%s/%s] Already streaming, skipping", container.Name, docker.ShortID(container.ContainerID))
 		d.streamingMu.Unlock()
 		return
 	}
@@ -262,14 +262,14 @@ func (d *Dashboard) startLogStreaming(ctx context.Context, container config.Cont
 	showTail := !d.initialLogsLoaded[container.Name]
 	d.initialLogsMu.RUnlock()
 
-	d.logger.Printf("[%s/%s] Starting log stream - showTail=%v", container.Name, container.ContainerID[:12], showTail)
+	d.logger.Printf("[%s/%s] Starting log stream - showTail=%v", container.Name, docker.ShortID(container.ContainerID), showTail)
 
 	// Mark as initially loaded
 	if showTail {
 		d.initialLogsMu.Lock()
 		d.initialLogsLoaded[container.Name] = true
 		d.initialLogsMu.Unlock()
-		d.logger.Printf("[%s/%s] Marked as initially loaded", container.Name, container.ContainerID[:12])
+		d.logger.Printf("[%s/%s] Marked as initially loaded", container.Name, docker.ShortID(container.ContainerID))
 	}
 
 	d.wg.Add(1)
@@ -289,7 +289,7 @@ func (d *Dashboard) startLogStreaming(ctx context.Context, container config.Cont
 			d.logger.Printf("[%s] Could not resolve container ID by name: %v", container.Name, err)
 			return
 		}
-		d.logger.Printf("[%s] Resolved current container ID: %s", container.Name, currentID[:12])
+		d.logger.Printf("[%s] Resolved current container ID: %s", container.Name, docker.ShortID(currentID))
 
 		// Use a local channel so we can tag each entry with this config entry's
 		// Name before it reaches the shared logChan. This allows multiple config
@@ -380,7 +380,7 @@ func (d *Dashboard) checkAllContainers(ctx context.Context) {
 		isRunning, err := d.dockerClient.IsContainerRunningByName(ctx, container.ContainerID)
 		if err != nil {
 			// Container not found or error checking
-			d.logger.Printf("[%s/%s] Error checking if running: %v", container.Name, container.ContainerID[:12], err)
+			d.logger.Printf("[%s/%s] Error checking if running: %v", container.Name, docker.ShortID(container.ContainerID), err)
 			d.statusTracker.UpdateServiceRunning(container.Name, false)
 			d.statusTracker.UpdateCustomStatus(container.Name, "status", "Status", "error", "Not found")
 			continue
@@ -416,16 +416,16 @@ func (d *Dashboard) checkAllContainers(ctx context.Context) {
 
 			if !streaming {
 				// Container is running but not streaming - start streaming
-				d.logger.Printf("[%s/%s] Container running but not streaming, starting stream", container.Name, container.ContainerID[:12])
+				d.logger.Printf("[%s/%s] Container running but not streaming, starting stream", container.Name, docker.ShortID(container.ContainerID))
 				// Status will be shown in System Status window
 				d.startLogStreaming(ctx, container)
 			} else {
 				// Already streaming, all good
-				// d.logger.Printf("[%s/%s] Container running and streaming", container.Name, container.ContainerID[:12])
+				// d.logger.Printf("[%s/%s] Container running and streaming", container.Name, docker.ShortID(container.ContainerID))
 			}
 		} else {
 			// Container exists but is not running
-			d.logger.Printf("[%s/%s] Container stopped", container.Name, container.ContainerID[:12])
+			d.logger.Printf("[%s/%s] Container stopped", container.Name, docker.ShortID(container.ContainerID))
 			d.statusTracker.UpdateServiceRunning(container.Name, false)
 			d.statusTracker.UpdateCustomStatus(container.Name, "status", "Status", "pending", "Stopped")
 

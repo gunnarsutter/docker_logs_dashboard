@@ -51,14 +51,22 @@ func (c *Client) Close() error {
 	return c.cli.Close()
 }
 
+// ShortID returns at most the first 12 characters of an ID or container name.
+func ShortID(id string) string {
+	if len(id) > 12 {
+		return id[:12]
+	}
+	return id
+}
+
 // StreamLogs streams logs from a container
 func (c *Client) StreamLogs(ctx context.Context, containerID string, showTail bool, logChan chan<- LogEntry) error {
-	c.logger.Printf("[%s] StreamLogs called - showTail=%v", containerID[:12], showTail)
+	c.logger.Printf("[%s] StreamLogs called - showTail=%v", ShortID(containerID), showTail)
 
 	// First, verify the container exists
 	containerInfo, err := c.cli.ContainerInspect(ctx, containerID)
 	if err != nil {
-		c.logger.Printf("[%s] Failed to inspect container: %v", containerID[:12], err)
+		c.logger.Printf("[%s] Failed to inspect container: %v", ShortID(containerID), err)
 		return fmt.Errorf("failed to inspect container %s: %w", containerID, err)
 	}
 
@@ -73,24 +81,24 @@ func (c *Client) StreamLogs(ctx context.Context, containerID string, showTail bo
 	// For reconnections, use Since to only get new logs from now forward
 	if showTail {
 		options.Tail = "50"
-		c.logger.Printf("[%s] Using Tail=50 for initial load", containerID[:12])
+		c.logger.Printf("[%s] Using Tail=50 for initial load", ShortID(containerID))
 	} else {
 		// Use Since with current time to only get future logs
 		// This prevents Docker from sending all historical logs
 		options.Since = time.Now().Add(-1 * time.Second).Format(time.RFC3339Nano)
-		c.logger.Printf("[%s] Using Since=%s to stream from now forward", containerID[:12], options.Since)
+		c.logger.Printf("[%s] Using Since=%s to stream from now forward", ShortID(containerID), options.Since)
 	}
 
 	logs, err := c.cli.ContainerLogs(ctx, containerID, options)
 	if err != nil {
-		c.logger.Printf("[%s] Failed to get logs: %v", containerID[:12], err)
+		c.logger.Printf("[%s] Failed to get logs: %v", ShortID(containerID), err)
 		return fmt.Errorf("failed to get logs for container %s: %w", containerID, err)
 	}
-	c.logger.Printf("[%s] Log stream established", containerID[:12])
+	c.logger.Printf("[%s] Log stream established", ShortID(containerID))
 
 	// Block and stream logs (this function will return when stream ends or context cancelled)
 	defer logs.Close()
-	defer c.logger.Printf("[%s] Log stream function exiting", containerID[:12])
+	defer c.logger.Printf("[%s] Log stream function exiting", ShortID(containerID))
 	reader := bufio.NewReader(logs)
 	lineCount := 0
 	startTime := time.Now()
@@ -98,7 +106,7 @@ func (c *Client) StreamLogs(ctx context.Context, containerID string, showTail bo
 	for {
 		select {
 		case <-ctx.Done():
-			c.logger.Printf("[%s] Context cancelled after %d lines in %v", containerID[:12], lineCount, time.Since(startTime))
+			c.logger.Printf("[%s] Context cancelled after %d lines in %v", ShortID(containerID), lineCount, time.Since(startTime))
 			return nil
 		default:
 			// Docker log format includes 8-byte header, so we need to skip it
@@ -108,7 +116,7 @@ func (c *Client) StreamLogs(ctx context.Context, containerID string, showTail bo
 			if err != nil {
 				// Suppress errors during shutdown (context canceled)
 				if err != io.EOF && ctx.Err() == nil {
-					c.logger.Printf("[%s] Error reading log header after %d lines: %v", containerID[:12], lineCount, err)
+					c.logger.Printf("[%s] Error reading log header after %d lines: %v", ShortID(containerID), lineCount, err)
 				}
 				return nil
 			}
@@ -123,14 +131,14 @@ func (c *Client) StreamLogs(ctx context.Context, containerID string, showTail bo
 			if err != nil {
 				// Suppress errors during shutdown (context canceled)
 				if err != io.EOF && ctx.Err() == nil {
-					c.logger.Printf("[%s] Error reading log message after %d lines: %v", containerID[:12], lineCount, err)
+					c.logger.Printf("[%s] Error reading log message after %d lines: %v", ShortID(containerID), lineCount, err)
 				}
 				return nil
 			}
 
 			lineCount++
 			if lineCount == 1 {
-				c.logger.Printf("[%s] First log line received", containerID[:12])
+				c.logger.Printf("[%s] First log line received", ShortID(containerID))
 			}
 
 			entry := LogEntry{
@@ -142,7 +150,7 @@ func (c *Client) StreamLogs(ctx context.Context, containerID string, showTail bo
 			select {
 			case logChan <- entry:
 			case <-ctx.Done():
-				c.logger.Printf("[%s] Context cancelled while sending log entry", containerID[:12])
+				c.logger.Printf("[%s] Context cancelled while sending log entry", ShortID(containerID))
 				return nil
 			}
 		}
